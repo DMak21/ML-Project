@@ -2,6 +2,14 @@ import numpy as np
 import pandas as pd
 
 class DecisionNode():
+    """
+    This class represents a node in the tree 
+    attribute: column that is used for splitting
+    threshold: value about which the split happens
+    value: if it is a leaf node then store the count of true samples 
+    true_branch: if the val>=threshold
+    false_branch: if the val<threshold
+    """
     def __init__(self, attribute=None, threshold=None, value=None, true_branch=None, false_branch=None):
         self.attribute = attribute          
         self.threshold = threshold          
@@ -10,6 +18,14 @@ class DecisionNode():
         self.false_branch = false_branch 
         
 class DecisionTree(object):
+    """
+    This is the main Decision tree class
+    root: the root node of the tree
+    min_info_gain: if the information gain made by the split is lesser than this value, the node does not split
+    max_depth: the maximum depth of the tree
+    split_val_metric: the metrics that can be used are mean and median
+    split_node_criterion: the criterion to build the tree, it can be entropy or gini
+    """
     def __init__(self, min_info_gain=1e-7, max_depth=float("inf"), split_val_metric = 'mean', split_node_criterion = 'entropy'):
         self.root = None
         self.min_info_gain = min_info_gain
@@ -21,6 +37,9 @@ class DecisionTree(object):
         self.one_hot = None
     
     def fit(self, X, y):
+        """
+        The function that fits the data to the tree
+        """
         self.one_hot = len(np.shape(y)) == 1
         data = np.c_[X, y]
         self.leaf_val = self.count_values
@@ -31,6 +50,9 @@ class DecisionTree(object):
         self.root = self.buildTree(X,y)
         
     def divide_on_feature(self, X, attribute, threshold):
+        """
+        Divide on the particular attribute
+        """
         split = None
         if isinstance(threshold, int) or isinstance(threshold, float):
             split = lambda test: test[attribute] >= threshold
@@ -43,6 +65,9 @@ class DecisionTree(object):
         return np.array([left, right])
         
     def buildTree(self, X, y, curr_depth = 0):
+        """
+        Building the tree
+        """
         largest_impurity = 0
         best_criteria = None
         best_splits = None
@@ -97,6 +122,9 @@ class DecisionTree(object):
         return DecisionNode(value = leaf_val)
         
     def predVal(self, X, tree = None):
+        """
+        The helper function for predicting values
+        """
         if tree is None:
             tree = self.root
             
@@ -132,11 +160,17 @@ class DecisionTree(object):
         return self.predVal(X, branch)
 
     def predict(self, X):
+        """
+        This function predicts using the test data
+        """
         X = np.array(X)
         pred = [self.predVal(i) for i in X]
         return pred
         
     def print_tree(self, tree=None, indentation=" "):
+        """
+        Helps print the tree if you need it
+        """
         if tree is None:
             tree = self.root
             
@@ -173,10 +207,16 @@ class DecisionTree(object):
         return impurity
 
     def info_gain_entropy(self, y, y1, y2):
+        """
+        info gain calculated using the entropy
+        """
         p =float(len(y1))/len(y1)+len(y2)
         return self.entropy(y)-p*self.entropy(y1)-(1-p)*self.entropy(y2)
     
     def info_gain_gini(self, y, y1, y2):
+        """
+        info gain calculated using the gini impurity
+        """
         p =float(len(y1))/len(y1)+len(y2)
         return self.gini(y)-p*self.gini(y1)-(1-p)*self.gini(y2)
     
