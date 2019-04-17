@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-from sklearn.model_selection import KFold
 
 def model_action(model, X_train, y_train, X_test, action=None):
     if 'fit' == action:
@@ -36,6 +35,21 @@ def model_params(model):
         
     return s
 
+def kf_split(X, n_splits):
+    indices = np.arange(X.shape[0])
+    fold_sizes = np.full(n_splits, X.shape[0] // n_splits, dtype=np.int)
+    fold_sizes[:X.shape[0] % n_splits] += 1
+
+    current = 0
+    for fold_size in fold_sizes:
+        start, stop = current, current + fold_size
+
+        test_index = indices[start:stop]
+        train_indices = np.concatenate([indices[0:start], indices[stop:indices.shape[0]]])
+
+        yield (train_indices, test_index)
+        current = stop
+
 def stacking(models, X_train, y_train, X_test,
              needs_proba=False,
              metric=None, n_folds=4):
@@ -49,8 +63,6 @@ def stacking(models, X_train, y_train, X_test,
         raise ValueError('Parameter <n_folds> must be integer')
     if not n_folds > 1:
         raise ValueError('Parameter <n_folds> must be not less than 2')
-
-    kf = KFold(n_splits = n_folds)
 
     if needs_proba:
         n_classes = len(np.unique(y_train))
@@ -71,7 +83,7 @@ def stacking(models, X_train, y_train, X_test,
         # Create empty array to store scores for each fold (to find mean)
         scores = np.array([])
 
-        for fold_counter, (tr_index, te_index) in enumerate(kf.split(X_train, y_train)):
+        for fold_counter, (tr_index, te_index) in enumerate(kf_split(X_train, n_folds)):
             # Split data and target
             X_tr = X_train[tr_index]
             y_tr = y_train[tr_index]
