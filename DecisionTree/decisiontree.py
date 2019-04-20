@@ -100,7 +100,7 @@ class DecisionTree(object):
                     y_1 = d_1[:, n_features:]
                     y_2 = d_2[:, n_features:]
                     
-                    impurity = self.impurity_calc(y, y_1, y_2)
+                    impurity = np.abs(self.impurity_calc(y, y_1, y_2))
                     if impurity > largest_impurity:
                         largest_impurity = impurity
                         best_criteria = {"attr": attr, "threshold": threshold}
