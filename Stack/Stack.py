@@ -6,8 +6,8 @@ class Stack():
     """
     Parameters
     ----------
-    models : list 
-        List of 1-st level models
+    models : list of tuples 
+        List of (models, no.oftimes)
     X_train : numpy array
     y_train : numpy 1d array
     X_test : numpy array
@@ -20,13 +20,20 @@ class Stack():
     -------
     stack()
         returns [S_train, S_test]
-
     train()
-
+        returns model
     predict()
+        returns class labels
     """
-    def __init__(self, models, X_train, y_train, X_test,
+    def __init__(self, models2, X_train, y_train, X_test,
                  needs_proba=False, n_folds=4):
+
+        models = []
+
+        for i in models2:
+            a,b = i
+            for j in range(b):
+                models.append(a)
         self.models = models          
         self.X_train = X_train          
         self.y_train = y_train                  
