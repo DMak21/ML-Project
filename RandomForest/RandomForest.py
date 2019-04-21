@@ -1,18 +1,9 @@
 import numpy as np
 import pandas as pd
-from  DecisionTree.decisiontree import DecsionTree
+import multiprocessing as mp
+from decisiontree import DecisionTree
 
 class RandomForest():
-    """
-    Main Random Forest class 
-    n_trees: number of estimator trees in the forest
-    min_gain: if the information gain made by the split is lesser than this value, the node does not split
-    max_depth: the maximum depth of the tree
-    split_val_metric: the metrics that can be used are mean and median
-    split_node_criterion: the criterion to build the tree, it can be entropy or gini
-    bootstrap: whether bootstrap samples are to be used 
-    n_jobs: number of cores the code runs on
-    """
     def __init__(self, n_trees = 100, max_features = None, split_val_metric = 'mean', split_node_criterion = 'gini', 
                  min_gain = 1e-7, max_depth = float("inf"), bootstrap = False, n_jobs = 1):
         self.n_trees = n_trees
@@ -34,9 +25,6 @@ class RandomForest():
                 ))
             
     def fit(self, X, y):
-        """
-        Fits the data to the forest
-        """
         y = np.array(y)
         n_feat = np.shape(X)[1]
         if not self.max_features:
@@ -57,20 +45,19 @@ class RandomForest():
                 self.trees[i].fit(X_sub,y_sub)
 
     def predict(self, X):
-        """
-        predicts the values on the test dataset
-        """
         y_preds = np.empty((X.shape[0],len(self.trees)))
         for i, tree in enumerate(self.trees):
             prediction = tree.predict(X)
 #             print(prediction)
-            idx = tree.feat_i
-            try:
-                prediction = tree.predict(X[:, idx])
-            except:
-                prediction = tree.predict(X.iloc[:, idx])
-            y_preds[:, i] = prediction
-    
+            if self.bootstrap == True:
+                idx = tree.feat_i
+                try:
+                    prediction = tree.predict(X[:, idx])
+                except:
+                    prediction = tree.predict(X.iloc[:, idx])
+                y_preds[:, i] = prediction
+            else: 
+                y_preds[:, i] = prediction
         y_pred = []
         for sample_predictions in y_preds:
             y_pred.append(np.bincount(sample_predictions.astype('int')).argmax())
@@ -78,9 +65,6 @@ class RandomForest():
         
         
     def get_random_subsets(self, X, y, n_sub):
-        """
-        randomly taking the subsets 
-        """
         n_samples = np.shape(X)[0]
         data = np.c_[X, y]
         np.random.shuffle(data)
