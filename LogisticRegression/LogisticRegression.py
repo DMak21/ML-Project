@@ -7,7 +7,7 @@ class LogisticRegression(object):
     learning_rate : float
         Default: 0.1
     num_steps : int
-        Default: 100
+        Default: 1000
     regulariser : string
         None or 'l1’ or ‘l2’ Default:'l2'
     lamda : float
@@ -27,7 +27,7 @@ class LogisticRegression(object):
         returns class probabilities
     """
     
-    def __init__(self, learning_rate=0.1, num_steps=100,
+    def __init__(self, learning_rate=0.1, num_steps=1000,
                  regulariser='l2',
                  lamda=1,
                  n_classes=None,

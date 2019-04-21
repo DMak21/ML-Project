@@ -18,10 +18,14 @@ class Stack():
 
     Functions
     -------
-    stack
+    stack()
         returns [S_train, S_test]
+
+    train()
+
+    predict()
     """
-    def __init__(models, X_train, y_train, X_test,
+    def __init__(self, models, X_train, y_train, X_test,
                  needs_proba=False, n_folds=4):
         self.models = models          
         self.X_train = X_train          
@@ -31,7 +35,7 @@ class Stack():
         self.n_folds = n_folds 
 
 
-    def model_action(model, X_train, y_train, X_test, action=None):
+    def model_action(self, model, X_train, y_train, X_test, action=None):
         if 'fit' == action:
             return model.fit(X_train, y_train)
         elif 'predict' == action:
@@ -41,7 +45,7 @@ class Stack():
         else:
             raise ValueError('Parameter action must be set properly')
 
-    def model_params(model):
+    def model_params(self, model):
         s = ''
         
         if hasattr(model, 'get_params'):
@@ -65,7 +69,7 @@ class Stack():
             
         return s
 
-    def kf_split(X, n_splits):
+    def kf_split(self, X, n_splits):
         indices = np.arange(X.shape[0])
         fold_sizes = np.full(n_splits, X.shape[0] // n_splits, dtype=np.int)
         fold_sizes[:X.shape[0] % n_splits] += 1
@@ -111,7 +115,7 @@ class Stack():
             # Create empty array to store scores for each fold (to find mean)
             scores = np.array([])
 
-            for fold_counter, (tr_index, te_index) in enumerate(kf_split(self.X_train, self.n_folds)):
+            for fold_counter, (tr_index, te_index) in enumerate(self.kf_split(self.X_train, self.n_folds)):
                 # Split data and target
                 X_tr = self.X_train[tr_index]
                 y_tr = self.y_train[tr_index]
@@ -120,21 +124,21 @@ class Stack():
 
                 model = copy.deepcopy(model)
 
-                _ = model_action(model, X_tr, y_tr, None, action = 'fit')
+                _ = self.model_action(model, X_tr, y_tr, None, action = 'fit')
 
                 if 'predict_proba' == action:
                     col_slice_model = slice(model_counter * n_classes, model_counter * n_classes + n_classes)
                 else:
                     col_slice_model = model_counter
-                S_train[te_index, col_slice_model] = model_action(model, None, None, X_te, action = action)
+                S_train[te_index, col_slice_model] = self.model_action(model, None, None, X_te, action = action)
 
 
-            _ = model_action(model, self.X_train, self.y_train, None, action = 'fit')
+            _ = self.model_action(model, self.X_train, self.y_train, None, action = 'fit')
             if 'predict_proba' == action:
                 col_slice_model = slice(model_counter * n_classes, model_counter * n_classes + n_classes)
             else:
                 col_slice_model = model_counter
-            S_test[:, col_slice_model] = model_action(model, None, None, self.X_test, action = action)
+            S_test[:, col_slice_model] = self.model_action(model, None, None, self.X_test, action = action)
                 
 
         if not needs_proba:
@@ -143,4 +147,22 @@ class Stack():
             if S_test is not None:
                 S_test = S_test.astype(int)
         return (S_train, S_test)
+
+    def train(self):
+        temp = self.models
+        self.model_n = temp[-1]
+        temp.pop()
+
+        self.models = temp
+
+        self.S_train, self.S_test = self.stack()
+
+        return self.model_n.fit(self.S_train, self.y_train)
+
+
+
+    def predict(self):
+        return self.model_n.predict(self.S_test)
+
+
 
