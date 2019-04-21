@@ -1,21 +1,29 @@
 import numpy as np
 import pandas as pd
 
+# Decision stump used as weak classifier in this impl. of Adaboost
 class DecisionStump():
     def __init__(self):
-        # classified as -1 or 1 given threshold
+        # Determines if sample shall be classified as -1 or 1 given threshold
         self.polarity = 1
-        # feature index
+        # The index of the feature used to make classification
         self.feature_index = None
-        # threshold value of the stump
+        # The threshold value that the feature should be measured against
         self.threshold = None
-        # measure of accuracy
+        # Value indicative of the classifier's accuracy
         self.alpha = None
 
-class AdaBoost:
-    
-    def __init__(self, num_jobs=5):
-        self.n_clf = num_jobs
+class Adaboost:
+    """Boosting method that uses a number of weak classifiers in 
+    ensemble to make a strong classifier. This implementation uses decision
+    stumps, which is a one level Decision Tree. 
+    Parameters:
+    -----------
+    n_clf: int
+        The number of weak classifiers that will be used. 
+    """
+    def __init__(self, n_clf=5):
+        self.n_clf = n_clf
 
     def fit(self, X, y):
         n_samples, n_features = np.shape(X)
@@ -24,14 +32,16 @@ class AdaBoost:
         w = np.full(n_samples, (1 / n_samples))
         
         self.clfs = []
-        # for num_jobs classifiers
+        # Iterate through classifiers
         for _ in range(self.n_clf):
             clf = DecisionStump()
-            # threshold for classification
+            # Minimum error given for using a certain feature value threshold
+            # for predicting sample label
             min_error = float('inf')
-            # R1 classification
+            # Iterate throught every unique feature value and see what value
+            # makes the best threshold for predicting y
             for feature_i in range(n_features):
-                feature_values = np.expand_dims(X.iloc[:, feature_i], axis=1)
+                feature_values = np.expand_dims(X[:, feature_i], axis=1)
                 unique_values = np.unique(feature_values)
                 # Try every unique feature value as threshold
                 for threshold in unique_values:
@@ -39,31 +49,35 @@ class AdaBoost:
                     # Set all predictions to '1' initially
                     prediction = np.ones(np.shape(y))
                     # Label the samples whose values are below threshold as '-1'
-                    prediction[X.iloc[:, feature_i] < threshold] = -1
+                    prediction[X[:, feature_i] < threshold] = -1
                     # Error = sum of weights of misclassified samples
                     error = sum(w[y != prediction])
                     
                     # If the error is over 50% we flip the polarity so that samples that
-                    # were classified as 0 are classified as 1
+                    # were classified as 0 are classified as 1, and vice versa
+                    # E.g error = 0.8 => (1 - error) = 0.2
                     if error > 0.5:
                         error = 1 - error
                         p = -1
 
-                    # threshold resulting in the smallest error is saved
+                    # If this threshold resulted in the smallest error we save the
+                    # configuration
                     if error < min_error:
                         clf.polarity = p
                         clf.threshold = threshold
                         clf.feature_index = feature_i
                         min_error = error
-            # find alpha, used to update weights
+            # Calculate the alpha which is used to update the sample weights,
+            # Alpha is also an approximation of this classifier's proficiency
             clf.alpha = 0.5 * np.log((1.0 - min_error) / (min_error + 1e-10))
             # Set all predictions to '1' initially
             predictions = np.ones(np.shape(y))
             # The indexes where the sample values are below threshold
-            negative_idx = (clf.polarity * X.iloc[:, clf.feature_index] < clf.polarity * clf.threshold)
+            negative_idx = (clf.polarity * X[:, clf.feature_index] < clf.polarity * clf.threshold)
             # Label those as '-1'
             predictions[negative_idx] = -1
-            # Calculate new weights
+            # Calculate new weights 
+            # Missclassified samples gets larger weights and correctly classified samples smaller
             w *= np.exp(-clf.alpha * y * predictions)
             # Normalize to one
             w /= np.sum(w)
@@ -74,12 +88,12 @@ class AdaBoost:
     def predict(self, X):
         n_samples = np.shape(X)[0]
         y_pred = np.zeros((n_samples, 1))
-        # For each classifier label the samples
+        # For each classifier => label the samples
         for clf in self.clfs:
             # Set all predictions to '1' initially
             predictions = np.ones(np.shape(y_pred))
             # The indexes where the sample values are below threshold
-            negative_idx = (clf.polarity * X.iloc[:, clf.feature_index] < clf.polarity * clf.threshold)
+            negative_idx = (clf.polarity * X[:, clf.feature_index] < clf.polarity * clf.threshold)
             # Label those as '-1'
             predictions[negative_idx] = -1
             # Add predictions weighted by the classifiers alpha
